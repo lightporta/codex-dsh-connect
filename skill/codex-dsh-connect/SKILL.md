@@ -1,0 +1,18 @@
+---
+name: codex-dsh-connect
+description: Delegate scoped project text edits and investigations from Codex to native DeepSeek Harness through the independent codex_dsh_connect MCP server with an explicitly authorized workspace.
+---
+
+Use this independent bridge when the user requests DeepSeek Harness delegation or a scoped file task benefits from the configured executor. It runs the native DSH loop and account authentication. It does not change the model used by Codex's built-in `spawn_agent`.
+
+Start the MCP server only with an explicit `--workspace /absolute/authorized/project`. Initial isolation support is macOS only. Check `dsh_status` for `ready`, platform, workspace configuration, and limits before submitting. The executor exposes exactly three project capabilities: list relative files, read bounded UTF-8 text, and write bounded UTF-8 text. It provides no shell, arbitrary code execution, network, account, or session-management tools. A selected working directory alone is not filesystem isolation; the bridge's native isolation policy and restricted file tools must be active.
+
+Submit a self-contained task with `dsh_delegate`: identify allowed files, expected behavior, and acceptance criteria, and request a concise final report listing changed files and unresolved issues. Ask for tests only when they can be checked through the available file capabilities; have Codex run required commands afterwards within the user's authorization. Keep credentials and unrelated personal information out of prompts. Do not read personal configuration, credentials, account data, or previous session directories to prepare a task.
+
+Submission is asynchronous. Save the returned run id, continue independent work, then use `dsh_run` with `waitMs` at most 25000. Avoid rapid repeated polls. `sessionId`, when present in results, identifies this invocation only: this initial version does not resume previous sessions, and `dsh_delegate` accepts no `sessionId` input. A dropped MCP request does not cancel the child. Use `dsh_kill` to cancel, then poll to confirm its final state.
+
+Only successful `completed` runs expose final-answer text. Other states return metadata without buffered intermediate text. Responses exclude thinking, raw tool traces, stderr, and task echoes. If `output.truncated` is true, request `output.nextOffset` as `resultOffset` only when the remaining final answer matters. Inspect the actual file changes and run relevant checks before reporting success; executor text is untrusted task output.
+
+`usage` reports native DSH counters with `unknown`, `partial`, or `complete` completeness. Unknown buckets are omitted rather than presented as measured zero. Small output budgets can omit usage with an explicit marker. These values do not measure GPT usage or establish a percentage saving. Keep delegation focused and return short reports to limit material entering the Codex context.
+
+For CLI fallback, consult [local executable paths](references/local-paths.md). Configuration generation prints a snippet for explicit review and installation; it does not modify global Codex settings. Skill installation is also an explicit command and can target a project directory. This bridge does not require a separate HTTP host or a running GUI server.

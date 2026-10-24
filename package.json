@@ -1,0 +1,41 @@
+{
+  "name": "codex-dsh-connect",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Standalone Codex MCP delegation to native DeepSeek Harness with explicit workspace isolation.",
+  "license": "MIT",
+  "author": "Asher Zeqi (https://github.com/lightporta)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lightporta/codex-dsh-connect.git"
+  },
+  "homepage": "https://github.com/lightporta/codex-dsh-connect#readme",
+  "bugs": {
+    "url": "https://github.com/lightporta/codex-dsh-connect/issues"
+  },
+  "bin": {
+    "codex-dsh-connect": "bin/codex-dsh-connect.mjs"
+  },
+  "exports": {
+    ".": "./lib/client.js",
+    "./mcp": "./lib/mcp.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "skill",
+    "docs",
+    "README.md",
+    "UPLOAD.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "smoke:live": "node scripts/smoke.mjs --live"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "project": "codex-dsh-connect",
+  "version": "0.1.0",
+  "validatedOn": "2026-10-24",
+  "platform": "macOS",
+  "node": "24.16.0",
+  "offlineTests": {
+    "passed": 38,
+    "failed": 0
+  },
+  "isolationCheck": {
+    "ok": true,
+    "nativeVersion": "0.2.1-rc.2",
+    "modelRequests": 0,
+    "credentialAccess": false
+  },
+  "nativeSmoke": {
+    "ok": true,
+    "mode": "standalone-stdio-native",
+    "provider": "deepseek-account",
+    "model": "deepseek-flash",
+    "toolCalls": 2,
+    "codeVerified": true,
+    "compactChars": 735
+  },
+  "scope": {
+    "syntheticProjectOnly": true,
+    "personalFilesAccessed": false,
+    "oldSessionsAccessed": false,
+    "accountDetailsEndpointsAccessed": false,
+    "nativeCredentialUseAuthorized": true
+  },
+  "notMeasured": [
+    "GPT token savings"
+  ],
+  "distribution": "Source ZIP; user uploads to GitHub."
+}

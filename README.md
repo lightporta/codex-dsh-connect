@@ -102,4 +102,4 @@ node scripts/smoke.mjs --live  # 显式真实模型测试，仅使用合成临�
 
 已在 macOS / Node 24.16.0 / 官方 Harness 0.2.1-rc.2 验证独立 stdio MCP → 原生 Harness 的真实代码读取、修改及终局回复，2 次文件工具调用，修改后的加法函数通过独立沙箱执行检查。不会把旧项目的测试结果当作本项目的通过记录。
 
-详细边界见 [安全与架构](docs/security.md)。上传 GitHub 的步骤见 [上传指南](UPLOAD.md)。MIT License，作者 [Asher Zeqi / lightporta](https://github.com/lightporta)。
+详细边界见 [安全与架构](docs/security.md)。MIT License，作者 [Asher Zeqi / lightporta](https://github.com/lightporta)。

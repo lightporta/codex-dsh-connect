@@ -21,7 +21,9 @@
     },
     "realLinuxRuntimeVerified": false,
     "realWindowsRuntimeVerified": false,
-    "realWsl2RuntimeVerified": false
+    "realWsl2RuntimeVerified": false,
+    "realLinuxSandboxVerified": true,
+    "realLinuxHarnessVerified": false
   },
   "syntheticIsolation": {
     "ok": true,
@@ -76,7 +78,7 @@
     "syntheticProjectOnly": true
   },
   "ci": {
-    "status": "pending-user-push-after-ubuntu-policy-fix",
+    "status": "passed-at-recorded-revision",
     "workflow": ".github/workflows/ci.yml",
     "offlineMatrix": {
       "os": [
@@ -152,13 +154,67 @@
       "script": "scripts/prepare-linux-ci.sh",
       "profile": "Distribution-supplied bwrap-userns-restrict",
       "scope": "GitHub-hosted Linux only; global AppArmor restriction remains enabled; no offline network sharing",
-      "localValidation": "bash syntax and non-hosted guard verified; real Ubuntu rerun pending"
-    }
+      "localValidation": "bash syntax and non-hosted guard verified",
+      "ciValidation": "Real Ubuntu 24.04 synthetic filesystem, network namespace and capability probes passed at the recorded revision."
+    },
+    "headRevision": "a6e60448f9b4560b4db8dc2cc606cb6c4257d03f",
+    "runId": 40446548374,
+    "url": "https://github.com/lightporta/codex-dsh-connect/actions/runs/40446548374",
+    "successfulChecks": 8,
+    "skippedChecks": 1,
+    "jobs": [
+      {
+        "id": 121999099005,
+        "name": "Real synthetic OS isolation (ubuntu-24.04)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099255,
+        "name": "Real synthetic OS isolation (macos-latest)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099280,
+        "name": "Offline tests (ubuntu-24.04, Node 22)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099284,
+        "name": "Offline tests (macos-latest, Node 22)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099323,
+        "name": "Offline tests (windows-latest, Node 24)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099347,
+        "name": "Offline tests (macos-latest, Node 24)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099419,
+        "name": "Offline tests (ubuntu-24.04, Node 24)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999099582,
+        "name": "Offline tests (windows-latest, Node 22)",
+        "conclusion": "success"
+      },
+      {
+        "id": 121999100149,
+        "name": "Real WSL2 synthetic isolation (manual, self-hosted)",
+        "conclusion": "skipped"
+      }
+    ]
   },
   "git": {
     "branch": "codex/engineering-cross-platform",
     "remote": "https://github.com/lightporta/codex-dsh-connect.git",
-    "pushPerformedByThisUpdate": false
+    "pushPerformedByThisUpdate": false,
+    "mainMergedLocallyFrom": "5b012c4c5f6cb914cba804d2c84d1ef4ddcd18f4"
   },
   "historicalEvidence": [
     {
@@ -217,7 +273,7 @@
   "notMeasured": [
     "GPT token savings"
   ],
-  "distribution": "Local Git repair commit; user pushes, confirms CI and merges.",
+  "distribution": "Local merge-conflict resolution commit; user pushes and merges PR #1.",
   "packageValidation": {
     "npmPack": true,
     "extractedPackageTests": {

@@ -18,7 +18,7 @@ GitHub Actions 的 `Offline tests` 在 macOS、Ubuntu 24.04、Windows 上分别�
 
 0.2.0 的[实际 CI](https://github.com/lightporta/codex-dsh-connect/actions/runs/40445112637)已确认六组离线任务与 macOS 隔离成功，Ubuntu 隔离在 bwrap 初始化时出现 `loopback: Failed RTM_NEWADDR: Operation not permitted`。Ubuntu 24.04 默认 AppArmor 限制会影响非特权用户命名空间内的 capabilities；参考 [Ubuntu 24.04 发布说明](https://documentation.ubuntu.com/release-notes/24.04/)。
 
-0.2.1 的 `scripts/prepare-linux-ci.sh` 仅允许普通用户在 GitHub 托管 Linux runner 运行：安装发行版包，先实际探测，必要时才加载 `apparmor-profiles` 自带的 `bwrap-userns-restrict`。已有不同或禁用的策略、未知错误会明确失败。它不关闭全局 AppArmor 限制，也不把离线模式改为共享网络；探针额外核对网络命名空间及零有效 capabilities。修复后的真实 Ubuntu 结果待再次推送 CI。
+0.2.1 的 `scripts/prepare-linux-ci.sh` 仅允许普通用户在 GitHub 托管 Linux runner 运行：安装发行版包，先实际探测，必要时才加载 `apparmor-profiles` 自带的 `bwrap-userns-restrict`。已有不同或禁用的策略、未知错误会明确失败。它不关闭全局 AppArmor 限制，也不把离线模式改为共享网络；探针额外核对网络命名空间及零有效 capabilities。修复后的[实际 CI](https://github.com/lightporta/codex-dsh-connect/actions/runs/40446548374)已通过六组离线测试与 macOS/Linux 两组真实隔离，WSL2 手动任务跳过。
 
 个人 Ubuntu/WSL 主机不自动运行该准备脚本。遇到同类 AppArmor 限制时，由管理员审阅后安装 `apparmor-profiles`，将 `/usr/share/apparmor/extra-profiles/bwrap-userns-restrict` 安装到 `/etc/apparmor.d/` 并用 `apparmor_parser -r` 加载；已有自定义策略应由管理员处理。参考 [Ubuntu AppArmor 管理说明](https://ubuntu.com/server/docs/how-to/security/apparmor/)。
 
@@ -40,4 +40,4 @@ WSL 行为参考 [Microsoft WSL 基本命令](https://learn.microsoft.com/en-us/
 
 上述 CI 不替代真实 Harness 验证。在目标 Linux 或 WSL2 环境安装固定 `@deepseek-ai/dsh@0.2.1-rc.2` 并自行完成原生账号登录后，先运行 `node scripts/smoke.mjs --check`，验证原生启动及文件隔离且不访问原凭据；再在明确授权的情况下运行 `node scripts/smoke.mjs --live`，验证合成代码修改及独立沙箱验收。成功日志只代表对应平台与安装组合。
 
-本次读取了已有 0.2.0 的 GitHub CI 日志，并为 0.2.1 重新运行 macOS 真实模型 smoke：MCP 委派完成，子代理执行两次文件工具调用，成功返回修复 `math.mjs` 的终局答案，独立离线沙箱验证加法行为。此次修复未推送或合并；Linux/WSL2 的真实 Harness 验收仍待目标环境运行。
+0.2.1 已重新运行 macOS 真实模型 smoke：MCP 委派完成，子代理执行两次文件工具调用，成功返回修复 `math.mjs` 的终局答案，独立离线沙箱验证加法行为。修复提交 `a6e6044` 已由用户推送，八项自动 CI 通过；Linux/WSL2 的真实 Harness 验收仍待目标环境运行。

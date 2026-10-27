@@ -21,10 +21,10 @@ Harness 自己负责模型认证、消息协议、工具循环和用量记录。
 | 环境 | 执行方式 | 当前验证范围 |
 | --- | --- | --- |
 | macOS | Seatbelt | 本机单元测试、真实隔离、0.2.1 的实际 Harness 读取/修改及终局返回通过 |
-| Linux | `/usr/bin/bwrap` | 启动策略及元数据模拟通过；真实系统隔离与 Harness 运行待验证 |
-| Windows | 选定 WSL2 内的 Linux 后端 | 参数、路径与配置模拟通过；真实 Windows/WSL2 运行待验证 |
+| Linux | `/usr/bin/bwrap` | Ubuntu 24.04 离线 CI 与真实合成隔离通过；真实 Harness 模型运行待验证 |
+| Windows | 选定 WSL2 内的 Linux 后端 | Windows 宿主离线 CI、WSL 参数与配置模拟通过；真实 WSL2 运行待验证 |
 
-Windows 原生 Node 仅用于配置生成和协议测试；执行任务须进入 WSL2。0.2.0 的六组三系统离线 CI 与 macOS 隔离已通过；Ubuntu 隔离遇到 AppArmor 命名空间权限问题，0.2.1 修复配置待重新推送验证。WSL2 仍待真实运行。详细状态见 [验证记录](docs/validation.json)。
+Windows 原生 Node 仅用于配置生成和协议测试；执行任务须进入 WSL2。0.2.1 修复后的[实际 CI](https://github.com/lightporta/codex-dsh-connect/actions/runs/40446548374)已通过六组三系统离线测试与两组 macOS/Linux 真实合成隔离，手动 WSL2 任务跳过。Linux/WSL2 的真实 Harness 模型运行仍待验证。详细状态见 [验证记录](docs/validation.json)。
 
 每次任务创建全新的临时 profile 和会话。只允许三个项目文件工具，不提供 shell、执行代码、安装依赖、联网工具或历史会话续接。运行结果只保存在当前 MCP 进程内，结束后移除临时会话；不是常驻 Web 服务。
 
@@ -126,4 +126,4 @@ node scripts/smoke.mjs --live  # 显式真实模型测试，仅使用合成临�
 
 推送后 GitHub Actions 自动运行 macOS、Ubuntu、Windows × Node 22/24 的离线测试、包检查，以及 macOS/Linux 的真实合成隔离。Windows hosted runner 的测试不代表 WSL2 已运行；真实 WSL2 需手动启用自托管任务。设置和验收步骤见 [跨平台验证](docs/platform-validation.md)。
 
-详细边界见 [安全与架构](docs/security.md)。上传 GitHub 的步骤见 [上传指南](UPLOAD.md)。MIT License，作者 [Asher Zeqi / lightporta](https://github.com/lightporta)。
+详细边界见 [安全与架构](docs/security.md)。MIT License，作者 [Asher Zeqi / lightporta](https://github.com/lightporta)。

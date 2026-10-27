@@ -3,9 +3,10 @@ import { spawn } from 'node:child_process'
 import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { checkIsolation, runBounded } from '../lib/check.js'
 import { createFixture, isolatedEnvironment } from '../lib/isolation.mjs'
+import { buildSandboxLaunch } from '../lib/launch.mjs'
 
 async function main() {
   const live = process.argv.includes('--live')
@@ -44,8 +45,10 @@ async function main() {
     while(run.status==='running'&&Date.now()-started<75000) run=await invoke('dsh_run',{id:run.id,waitMs:25000,maxOutputChars:4000})
     if(run.status!=='completed'||run.output?.available!==true) throw new Error('native failed')
     verifier=await createFixture({workspace:root,live:false,auth:'account'})
-    await writeFile(verifier.policy,await readFile(verifier.policy,'utf8')+'\n(deny network*)\n',{mode:0o600})
-    const verified=await runBounded('/usr/bin/sandbox-exec',['-f',verifier.policy,verifier.node,'--input-type=module','-e',"import('./math.mjs').then(({add})=>{if(add(2,3)!==5||add(-3,8)!==5||add(0,0)!==0)process.exitCode=1}).catch(()=>{process.exitCode=1})"],{cwd:root,env:isolatedEnvironment({scratch:verifier.scratch,source:{},live:false}),timeoutMs:10000})
+    if (process.platform === 'darwin') await writeFile(verifier.policy,await readFile(verifier.policy,'utf8')+'\n(deny network*)\n',{mode:0o600})
+    const source = `import(${JSON.stringify(pathToFileURL(join(root, 'math.mjs')).href)}).then(({add})=>{if(add(2,3)!==5||add(-3,8)!==5||add(0,0)!==0)process.exitCode=1}).catch(()=>{process.exitCode=1})`
+    const launch = buildSandboxLaunch(verifier, ['--input-type=module', '-e', source], { env: isolatedEnvironment({scratch:verifier.scratch,source:{},live:false}) })
+    const verified=await runBounded(launch.command,launch.args,{cwd:launch.cwd,env:launch.env,timeoutMs:10000})
     return {ok:verified.code===0&&!verified.timedOut&&!verified.overflow,mode:'standalone-stdio-native',nativeVersion:verifier.version,provider:'deepseek-account',model:'deepseek-flash',codeVerified:verified.code===0,compactChars:JSON.stringify(run).length,toolCalls:run.counts?.toolCalls,usage:run.usage}
   } catch { return {ok:false,outcome:'standaloneSmokeFailed'} }
   finally {

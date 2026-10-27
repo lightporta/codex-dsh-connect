@@ -16,6 +16,29 @@ test('config is a standalone native stdio snippet with explicit workspace and no
   assert.throws(()=>generateCodexConfig({workspace:'relative'}),/absolute/)
 })
 
+test('native config preserves the explicit credential location and generation budgets', () => {
+  const workspace = process.cwd()
+  const credentialFile = join(tmpdir(), 'synthetic-login.yaml')
+  const snippet = generateCodexConfig({ workspace, credentialFile, maxRequests: 3, timeoutMs: 45000 })
+  const args = JSON.parse(snippet.split('\n').find(line => line.startsWith('args = ')).slice('args = '.length))
+  assert.deepEqual(args.slice(-6), ['--credential-file', credentialFile, '--max-requests', '3', '--timeout-ms', '45000'])
+  assert.throws(() => generateCodexConfig({ workspace, credentialFile: 'relative/login.yaml' }), /credential/)
+  assert.throws(() => generateCodexConfig({ workspace, maxRequests: 17 }), /maxRequests/)
+  assert.throws(() => generateCodexConfig({ workspace, timeoutMs: 999 }), /timeoutMs/)
+})
+
+test('CLI WSL options generate an argv-only Windows configuration with Linux paths', () => {
+  const { options } = parse(['config', '--workspace', '/home/demo/project', '--wsl-distro', 'Ubuntu-24.04', '--wsl-node', '/usr/bin/node', '--wsl-cli', '/opt/codex-dsh-connect/bin/codex-dsh-connect.mjs', '--dsh-root', '/opt/dsh', '--credential-file', '/home/demo/.dsh/.credentials.yaml', '--max-requests', '3', '--timeout-ms', '45000'])
+  const snippet = generateCodexConfig(options)
+  assert.match(snippet, /command = "wsl.exe"/)
+  const args = JSON.parse(snippet.split('\n').find(line => line.startsWith('args = ')).slice('args = '.length))
+  assert.deepEqual(args.slice(0, 5), ['--distribution', 'Ubuntu-24.04', '--exec', '/usr/bin/env', '-i'])
+  assert.ok(args.includes('/home/demo/project'))
+  assert.ok(args.includes('/opt/codex-dsh-connect/bin/codex-dsh-connect.mjs'))
+  assert.deepEqual(args.slice(-6), ['--credential-file', '/home/demo/.dsh/.credentials.yaml', '--max-requests', '3', '--timeout-ms', '45000'])
+  assert.equal(args.some(arg => /^(?:HOME|DEEPSEEK_API_KEY|NODE_OPTIONS)=/.test(arg)), false)
+})
+
 test('Skill installation needs explicit destination and protects existing content', async () => {
   const root=await mkdtemp(join(tmpdir(),'codex-dsh-setup-'))
   try {

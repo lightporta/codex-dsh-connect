@@ -1,8 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { PassThrough } from 'node:stream'
+import { PassThrough, Writable } from 'node:stream'
 import { createDispatcher, runStdioServer, SERVER_INFO } from '../lib/mcp.js'
 import { compactRun, compactUsage, compactStatus } from '../lib/projection.js'
+import { VERSION } from '../lib/version.js'
+import { runStdioServer as runTransport } from '../lib/stdio.js'
 
 const parse = response => JSON.parse(response.result.content[0].text)
 const request = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) })
@@ -33,14 +35,14 @@ test('MCP advertises standalone identity and exactly five tools without session 
   const { client } = mockClient()
   const dispatch = createDispatcher(client)
   const initialized = await dispatch(request('initialize', { protocolVersion: '2024-11-05' }))
-  assert.deepEqual(initialized.result.serverInfo, { name: 'codex-dsh-connect', version: '0.1.0' })
+  assert.deepEqual(initialized.result.serverInfo, { name: 'codex-dsh-connect', version: VERSION })
   assert.equal(initialized.result.protocolVersion, '2024-11-05')
   const unsupported = await dispatch(request('initialize', { protocolVersion: 'not-a-protocol' }))
   assert.notEqual(unsupported.result.protocolVersion, 'not-a-protocol')
   const tools = (await dispatch(request('tools/list'))).result.tools
   assert.deepEqual(tools.map(tool => tool.name), ['dsh_status', 'dsh_delegate', 'dsh_run', 'dsh_runs', 'dsh_kill'])
   assert.equal(tools[1].inputSchema.properties.sessionId, undefined)
-  assert.match(tools[1].description, /macOS/)
+  assert.match(tools[1].description, /isolation/)
   assert.doesNotMatch(JSON.stringify(tools), /_market_|_lab_|HTTP|resume|shared host/i)
 })
 
@@ -55,6 +57,9 @@ test('native status preserves useful limits and excludes private paths, reasons,
   assert.equal(status.limits.maxRequests, 8)
   assert.doesNotMatch(JSON.stringify(status), /PRIVATE_|token|profile/)
   assert.deepEqual(compactStatus({ platform: '/PRIVATE', auth: { mode: 'PRIVATE' } }).auth, { mode: 'unknown' })
+  const unavailable = compactStatus({ ready: false, platform: 'linux', reason: 'bubblewrapUnavailable', engine: { isolation: 'bubblewrap' } })
+  assert.equal(unavailable.reason, 'bubblewrapUnavailable')
+  assert.equal(unavailable.isolation, 'bubblewrap')
 })
 
 test('delegate submits async, polling is bounded, listing omits prompts, and kill is explicit', async () => {
@@ -164,5 +169,37 @@ test('stdio framing handles split multibyte messages and concurrent kill during 
   await serving
   assert.deepEqual(messages.map(message => message.id).sort(), [1, 2, 3])
   assert.equal(parse(messages.find(message => message.id === 2)).result, undefined)
-  assert.deepEqual(SERVER_INFO, { name: 'codex-dsh-connect', version: '0.1.0' })
+  assert.deepEqual(SERVER_INFO, { name: 'codex-dsh-connect', version: VERSION })
+})
+
+test('stdio pauses request parsing under output pressure and drains every bounded response', async t => {
+  const input = new PassThrough()
+  const error = new PassThrough()
+  const writes = []
+  const releases = []
+  const output = new Writable({
+    highWaterMark: 1,
+    write(chunk, _encoding, done) { writes.push(chunk.toString()); releases.push(done) },
+  })
+  t.after(() => { input.destroy(); output.destroy(); error.destroy() })
+  let invoked = 0
+  let finished = false
+  const tools = [{ name: 'bounded', inputSchema: { type: 'object', properties: {} }, async handler() { invoked += 1; return 'x'.repeat(8000) } }]
+  const serving = runTransport({ client: {}, input, output, error, tools }).then(() => { finished = true })
+  const count = 150
+  input.end(Array.from({ length: count }, (_, id) => JSON.stringify(request('tools/call', { name: 'bounded', arguments: {} }, id)) + '\n').join(''))
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(input.isPaused(), true)
+  assert.ok(invoked <= 32, `only bounded concurrent dispatches may run, observed ${invoked}`)
+  assert.ok(output.writableLength < 10000, 'blocked writes stay in a bounded transport queue')
+  for (let turns = 0; turns < 1000 && (!finished || releases.length > 0); turns += 1) {
+    releases.shift()?.()
+    await new Promise(resolve => setImmediate(resolve))
+  }
+  assert.equal(finished, true)
+  await serving
+  const responses = writes.join('').trim().split('\n').map(line => JSON.parse(line))
+  assert.equal(responses.length, count)
+  assert.equal(new Set(responses.map(response => response.id)).size, count)
+  assert.ok(responses.every(response => response.result || response.error?.code === -32000))
 })

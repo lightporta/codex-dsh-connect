@@ -1,37 +1,123 @@
 {
   "project": "codex-dsh-connect",
-  "version": "0.1.0",
-  "validatedOn": "2026-10-24",
+  "version": "0.2.0",
+  "validatedOn": "2026-10-27",
   "platform": "macOS",
   "node": "24.16.0",
   "offlineTests": {
-    "passed": 38,
-    "failed": 0
+    "passed": 66,
+    "failed": 0,
+    "skipped": 0
+  },
+  "platformSimulation": {
+    "executedOn": "macOS",
+    "linux": {
+      "passed": 16,
+      "scope": "argv policy, environment and synthetic POSIX metadata"
+    },
+    "windowsWsl": {
+      "passed": 6,
+      "scope": "explicit Linux paths, WSL argv and TOML configuration"
+    },
+    "realLinuxRuntimeVerified": false,
+    "realWindowsRuntimeVerified": false,
+    "realWsl2RuntimeVerified": false
+  },
+  "syntheticIsolation": {
+    "ok": true,
+    "platform": "darwin",
+    "backend": "seatbelt",
+    "phases": 2,
+    "realCredentialAccess": false,
+    "harnessOrModelTested": false
   },
   "isolationCheck": {
     "ok": true,
+    "outcome": "isolationVerified",
+    "platform": "darwin",
     "nativeVersion": "0.2.1-rc.2",
     "modelRequests": 0,
     "credentialAccess": false
   },
   "nativeSmoke": {
-    "ok": true,
-    "mode": "standalone-stdio-native",
-    "provider": "deepseek-account",
-    "model": "deepseek-flash",
-    "toolCalls": 2,
-    "codeVerified": true,
-    "compactChars": 735
+    "status": "not-run-for-0.2.0",
+    "reason": "No live model request in this engineering and simulation validation."
   },
-  "scope": {
-    "syntheticProjectOnly": true,
-    "personalFilesAccessed": false,
-    "oldSessionsAccessed": false,
-    "accountDetailsEndpointsAccessed": false,
-    "nativeCredentialUseAuthorized": true
+  "ci": {
+    "status": "pending-user-push",
+    "workflow": ".github/workflows/ci.yml",
+    "offlineMatrix": {
+      "os": [
+        "macos-latest",
+        "ubuntu-24.04",
+        "windows-latest"
+      ],
+      "node": [
+        22,
+        24
+      ]
+    },
+    "realSyntheticIsolation": [
+      "macos-latest",
+      "ubuntu-24.04"
+    ],
+    "wsl2": "Manual opt-in on an existing self-hosted Windows X64 runner labeled wsl2; not verified by hosted Windows unit tests."
   },
+  "git": {
+    "branch": "codex/engineering-cross-platform",
+    "remote": "https://github.com/lightporta/codex-dsh-connect.git",
+    "pushPerformedByThisUpdate": false
+  },
+  "historicalEvidence": [
+    {
+      "project": "codex-dsh-connect",
+      "version": "0.1.0",
+      "validatedOn": "2026-10-24",
+      "platform": "macOS",
+      "node": "24.16.0",
+      "offlineTests": {
+        "passed": 38,
+        "failed": 0
+      },
+      "isolationCheck": {
+        "ok": true,
+        "nativeVersion": "0.2.1-rc.2",
+        "modelRequests": 0,
+        "credentialAccess": false
+      },
+      "nativeSmoke": {
+        "ok": true,
+        "mode": "standalone-stdio-native",
+        "provider": "deepseek-account",
+        "model": "deepseek-flash",
+        "toolCalls": 2,
+        "codeVerified": true,
+        "compactChars": 735
+      },
+      "scope": {
+        "syntheticProjectOnly": true,
+        "personalFilesAccessed": false,
+        "oldSessionsAccessed": false,
+        "accountDetailsEndpointsAccessed": false,
+        "nativeCredentialUseAuthorized": true
+      },
+      "notMeasured": [
+        "GPT token savings"
+      ],
+      "distribution": "Source ZIP; user uploads to GitHub."
+    }
+  ],
   "notMeasured": [
     "GPT token savings"
   ],
-  "distribution": "Source ZIP; user uploads to GitHub."
+  "distribution": "Local Git commit; user pushes to GitHub to run CI.",
+  "packageValidation": {
+    "npmPack": true,
+    "extractedPackageTests": {
+      "passed": 66,
+      "failed": 0
+    },
+    "extractedPackageCheck": true,
+    "scope": "Local macOS tarball extraction, runtime source inclusion and test/check execution; not npm publication."
+  }
 }

@@ -1,17 +1,16 @@
-# 上传至 GitHub
+# 更新 GitHub 与检查 CI
 
-本压缩包是独立 `codex-dsh-connect` 项目。先解压，再上传文件夹内的源码；直接把 zip 上传成一个仓库文件不会自动展开为项目。
+仓库地址：[lightporta/codex-dsh-connect](https://github.com/lightporta/codex-dsh-connect)。当前为已有 Git 仓库，不需要重新初始化或添加重复 remote。
 
-1. 在自己的 GitHub 新建空仓库 `codex-dsh-connect`。
-2. 打开解压后的 `codex-dsh-connect` 目录。
-3. 用 GitHub Desktop 添加该目录并 Publish，或使用下列命令。若网页上传，需一并上传 `.github/`、`.gitignore` 等隐藏项。
+本次更新为 `0.2.0`，在本地 `codex/engineering-cross-platform` 分支提交，由用户推送：
 
 ```sh
-git init -b main
-git add .
-git commit -m "Initial standalone Codex DeepSeek Harness connector"
-git remote add origin https://github.com/lightporta/codex-dsh-connect.git
-git push -u origin main
+git status --short --branch
+git log -1 --oneline
+git remote -v
+git push -u origin codex/engineering-cross-platform
 ```
 
-源码和测试不含凭据、个人会话或 node_modules。`npm ci --ignore-scripts --offline` 可完成零依赖安装。`npm test` 和 `npm run check` 不调用模型；`node scripts/smoke.mjs --live` 会显式使用已有 DeepSeek 登录来运行临时测试。
+然后在 GitHub 将该分支与 `main` 比较并创建 PR。推送、PR 均触发 CI。合并前检查全部三系统测试和 macOS/Linux 隔离任务；真实 WSL2 另按 [跨平台验证](docs/platform-validation.md) 手动触发。当前文档与本地通过记录不表示 GitHub CI 已完成。
+
+若继续用网页上传，上传完整源码并保留 `.github/` 等隐藏目录；不要只上传一个压缩包。Node 项目零运行时依赖，`npm ci --ignore-scripts --offline` 可完成安装。`npm test`、`npm run check`、`npm run test:isolation` 不请求模型。真实模型 smoke 必须显式指定 `--live`。

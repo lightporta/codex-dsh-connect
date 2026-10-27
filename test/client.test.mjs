@@ -110,10 +110,10 @@ test('cwd cannot redirect the executor beyond its configured canonical project',
   assert.equal((await f.client.run({ task: 'check', cwd: f.workspace, wait: 2000 })).status, 'completed')
 })
 
-test('an explicit symlink workspace is rejected before fixture creation', { skip: process.platform === 'win32' }, async t => {
+test('an explicit symlink workspace is rejected before fixture creation', async t => {
   const f = await fixture(t)
   const alias = join(f.root, 'project-alias')
-  await symlink(f.workspace, alias, 'dir')
+  await symlink(f.workspace, alias, process.platform === 'win32' ? 'junction' : 'dir')
   let invoked = false
   const client = await createClient({ workspace: alias, fixtureFactory: async () => { invoked = true } })
   t.after(() => client.close())

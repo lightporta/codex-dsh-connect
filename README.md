@@ -5,7 +5,7 @@
 ```text
 Codex → stdio MCP → codex-dsh-connect
                          ↓
-              独立 macOS 文件沙箱
+         Seatbelt / bubblewrap 文件沙箱
                          ↓
               原生 DeepSeek Harness
                          ↓
@@ -16,7 +16,15 @@ Harness 自己负责模型认证、消息协议、工具循环和用量记录。
 
 ## 当前版本
 
-`0.1.0` 支持 macOS、Node `^22.19.0 || >=24.0.0`，以及经验证的官方 `@deepseek-ai/dsh@0.2.1-rc.2`。需要先通过 Harness 自己完成 **DeepSeek 账号登录**；本版本使用原生 `deepseek-account / deepseek-flash`，不要求另配 API Key。其他 Harness 版本会拒绝执行，需先复核原生协议和权限。
+`0.2.0` 增加 Linux bubblewrap 后端和 Windows WSL2 配置，要求 Node `^22.19.0 || >=24.0.0`、固定官方 `@deepseek-ai/dsh@0.2.1-rc.2`。需要先通过 Harness 自己完成 **DeepSeek 账号登录**；使用原生 `deepseek-account / deepseek-flash`，不要求另配 API Key。其他 Harness 版本会拒绝执行。
+
+| 环境 | 执行方式 | 当前验证范围 |
+| --- | --- | --- |
+| macOS | Seatbelt | 本机单元测试、合成文件真实隔离；0.1.0 的真实 Harness 修改记录保留为历史证据 |
+| Linux | `/usr/bin/bwrap` | 启动策略及元数据模拟通过；真实系统隔离与 Harness 运行待验证 |
+| Windows | 选定 WSL2 内的 Linux 后端 | 参数、路径与配置模拟通过；真实 Windows/WSL2 运行待验证 |
+
+Windows 原生 Node 仅用于配置生成和协议测试；执行任务须进入 WSL2。CI 未运行前，不把模拟结果视作跨平台运行成功。详细状态见 [验证记录](docs/validation.json)。
 
 每次任务创建全新的临时 profile 和会话。只允许三个项目文件工具，不提供 shell、执行代码、安装依赖、联网工具或历史会话续接。运行结果只保存在当前 MCP 进程内，结束后移除临时会话；不是常驻 Web 服务。
 
@@ -53,6 +61,18 @@ node bin/codex-dsh-connect.mjs config \
 ```
 
 默认安装路径为 `~/.npm-global/lib/node_modules/@deepseek-ai/dsh`。默认原生凭据位置为 `~/.dsh/.credentials.yaml`；适配器不读取、显示或复制该文件，仅让沙箱中的 Harness 对其只读使用。也可用 `--credential-file /absolute/path` 明确指定位置。
+
+### Linux 与 Windows WSL2
+
+Linux 需先安装发行版的 bubblewrap，例如 Ubuntu 的 `sudo apt-get install bubblewrap`，并允许非特权用户命名空间。未安装或系统策略不允许时会失败，不会降级为无隔离运行。Node、Harness 安装目录须使用实际的规范路径；只有授权项目与临时目录可写。
+
+Windows 先在选定的 WSL2 发行版中安装 Linux Node、bubblewrap、本项目和 Harness，并在该发行版内完成原生登录。可直接在 WSL2 运行前述命令，或在 Windows 生成启动片段：
+
+```powershell
+node bin/codex-dsh-connect.mjs config --wsl-distro Ubuntu-24.04 --wsl-node /usr/bin/node --wsl-cli /home/you/tools/codex-dsh-connect/bin/codex-dsh-connect.mjs --workspace /home/you/projects/example --dsh-root /home/you/.npm-global/lib/node_modules/@deepseek-ai/dsh --credential-file /home/you/.dsh/.credentials.yaml
+```
+
+所有路径均属于选定发行版，不自动转换 Windows 路径。生成的 `wsl.exe --distribution ... --exec /usr/bin/env -i ...` 使用独立参数，无 shell、无宿主凭据环境转发。建议项目放在发行版 Linux 文件系统中。`config` 也会保留显式的 `--credential-file`、`--max-requests` 和 `--timeout-ms`。
 
 官方文档：[Codex MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)、[Codex Skills](https://learn.chatgpt.com/docs/build-skills)。
 
@@ -96,10 +116,14 @@ node bin/codex-dsh-connect.mjs skill install --dest ./work/codex-dsh-connect-ski
 ```sh
 npm test
 npm run check
+npm run test:platforms     # 本机运行 Linux/WSL 参数与策略模拟
+npm run test:isolation    # macOS/Linux 真实合成文件隔离；无 Harness/账号/模型
 node scripts/smoke.mjs --check # 无模型请求、无原凭据访问
 node scripts/smoke.mjs --live  # 显式真实模型测试，仅使用合成临时项目
 ```
 
-已在 macOS / Node 24.16.0 / 官方 Harness 0.2.1-rc.2 验证独立 stdio MCP → 原生 Harness 的真实代码读取、修改及终局回复，2 次文件工具调用，修改后的加法函数通过独立沙箱执行检查。不会把旧项目的测试结果当作本项目的通过记录。
+本次在 macOS / Node 24.16.0 通过 66 项测试、真实合成文件隔离与原生无模型检查。0.1.0 曾完成独立 stdio MCP → Harness 的真实代码修改；该历史结果不替代 0.2.0 的实时模型回归。此次不调用模型。
+
+推送后 GitHub Actions 自动运行 macOS、Ubuntu、Windows × Node 22/24 的离线测试、包检查，以及 macOS/Linux 的真实合成隔离。Windows hosted runner 的测试不代表 WSL2 已运行；真实 WSL2 需手动启用自托管任务。设置和验收步骤见 [跨平台验证](docs/platform-validation.md)。
 
 详细边界见 [安全与架构](docs/security.md)。上传 GitHub 的步骤见 [上传指南](UPLOAD.md)。MIT License，作者 [Asher Zeqi / lightporta](https://github.com/lightporta)。

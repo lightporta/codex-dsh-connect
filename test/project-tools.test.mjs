@@ -74,17 +74,30 @@ test('file, directory, and dangling symlinks are denied without altering their t
   const f = await fixture(t)
   const outside = join(f.scratch, 'outside.txt')
   await writeFile(outside, 'outside stays unchanged')
-  await symlink(outside, join(f.root, 'file-link'))
-  await symlink(f.scratch, join(f.root, 'directory-link'))
-  await symlink(join(f.scratch, 'missing'), join(f.root, 'dangling'))
+  try {
+    await symlink(outside, join(f.root, 'file-link'), 'file')
+    await symlink(join(f.scratch, 'missing'), join(f.root, 'dangling'), 'file')
+  } catch (error) {
+    if (process.platform === 'win32' && error.code === 'EPERM') return t.skip('Windows file symlinks require Developer Mode or elevation; junction and hard-link rejection remain tested')
+    throw error
+  }
+  await symlink(f.scratch, join(f.root, 'directory-link'), process.platform === 'win32' ? 'junction' : 'dir')
   for (const path of ['file-link', 'directory-link/outside.txt', 'dangling']) {
     await assert.rejects(f.call('project_read_text', { path }), /symlink/)
     await assert.rejects(f.call('project_write_text', { path, content: 'forbidden' }), /symlink/)
   }
   assert.equal(await readFile(outside, 'utf8'), 'outside stays unchanged')
   assert.deepEqual(await f.call('project_list_files', {}), { files: [], truncated: false })
+})
+
+test('hard links are denied without reading or replacing their targets', async t => {
+  const f = await fixture(t)
+  const outside = join(f.scratch, 'outside.txt')
+  await writeFile(outside, 'outside stays unchanged')
   await link(outside, join(f.root, 'hard-link'))
   await assert.rejects(f.call('project_read_text', { path: 'hard-link' }), /plain unlinked file/)
+  await assert.rejects(f.call('project_write_text', { path: 'hard-link', content: 'forbidden' }), /plain unlinked file/)
+  assert.equal(await readFile(outside, 'utf8'), 'outside stays unchanged')
 })
 
 test('file sizes, binary input, cancellation, read pagination and list output are bounded', async t => {
@@ -114,7 +127,7 @@ test('file sizes, binary input, cancellation, read pagination and list output ar
 test('source generator rejects a symlink root and filesystem root', async t => {
   const f = await fixture(t)
   const alias = join(f.scratch, 'alias')
-  await symlink(f.root, alias)
+  await symlink(f.root, alias, process.platform === 'win32' ? 'junction' : 'dir')
   assert.throws(() => createProjectToolsSource(alias), /plain director/)
   assert.throws(() => createProjectToolsSource('/'), /project directory/)
   assert.throws(() => createProjectToolsSource('relative/path'), /absolute/)
@@ -126,7 +139,7 @@ test('a workspace replaced by a symlink is denied after source generation', asyn
   const outside = join(f.scratch, 'outside-directory')
   await mkdir(outside)
   await writeFile(join(outside, 'unchanged.txt'), 'outside test data')
-  await symlink(outside, f.root)
+  await symlink(outside, f.root, process.platform === 'win32' ? 'junction' : 'dir')
   await assert.rejects(f.call('project_list_files', {}), /workspace ancestor/)
   await assert.rejects(f.call('project_read_text', { path: 'unchanged.txt' }), /workspace ancestor/)
   await assert.rejects(f.call('project_write_text', { path: 'unchanged.txt', content: 'forbidden' }), /workspace ancestor/)

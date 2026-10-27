@@ -1,12 +1,35 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_wsl2:
+        description: Run real WSL2 probes on an existing self-hosted Windows runner labeled wsl2
+        type: boolean
+        default: false
+      wsl_distribution:
+        description: Existing WSL2 distribution on that runner
+        type: string
+        default: Ubuntu-24.04
+      wsl_node:
+        description: Absolute Linux Node path inside the selected distribution
+        type: string
+        default: /usr/bin/node
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test:
-    runs-on: macos-latest
+    name: Offline tests (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
+        os: [macos-latest, ubuntu-24.04, windows-latest]
         node: [22, 24]
     steps:
       - uses: actions/checkout@v4
@@ -16,3 +39,36 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm test
       - run: npm run check
+      - name: Verify npm package contents
+        run: npm pack --dry-run --ignore-scripts
+  isolation:
+    name: Real synthetic OS isolation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Prepare Linux isolation and targeted AppArmor policy
+        if: runner.os == 'Linux'
+        run: bash scripts/prepare-linux-ci.sh
+      - name: Test real isolation with synthetic files and no account
+        run: node scripts/platform-isolation.mjs
+  wsl2:
+    name: Real WSL2 synthetic isolation (manual, self-hosted)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_wsl2
+    runs-on: [self-hosted, Windows, X64, wsl2]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test selected WSL2 distro without account or model
+        shell: pwsh
+        env:
+          WSL_TEST_DISTRIBUTION: ${{ inputs.wsl_distribution }}
+          WSL_TEST_NODE: ${{ inputs.wsl_node }}
+        run: ./scripts/wsl-ci.ps1 -Distribution $env:WSL_TEST_DISTRIBUTION -NodePath $env:WSL_TEST_NODE

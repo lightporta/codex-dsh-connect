@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { authProvider, buildPolicy, classifyRequest, createFixture, guardSource, isolatedEnvironment } from '../lib/isolation.mjs'
@@ -39,12 +39,13 @@ test('account is the default and only explicit API-key live mode forwards an exi
   assert.equal(authProvider('api-key'), 'deepseek-official')
   assert.throws(() => authProvider('other'))
   const source = { HOME: '/personal', CODEX_HOME: '/personal/config', NODE_OPTIONS: '--require private', HTTPS_PROXY: 'private', DSH_HOME: '/personal/dsh', DEEPSEEK_API_KEY: 'synthetic-key' }
-  for (const env of [isolatedEnvironment({ scratch: '/tmp/task', source }), isolatedEnvironment({ scratch: '/tmp/task', source, live: true })]) {
+  const scratch = join(tmpdir(), 'task')
+  for (const env of [isolatedEnvironment({ scratch, source }), isolatedEnvironment({ scratch, source, live: true })]) {
     for (const key of ['HOME','CODEX_HOME','NODE_OPTIONS','HTTPS_PROXY','DEEPSEEK_API_KEY']) assert.equal(env[key], undefined)
-    assert.equal(env.DSH_HOME, '/tmp/task/dsh')
-    assert.equal(env.DSH_AGENTS_HOME, '/tmp/task/agents')
+    assert.equal(env.DSH_HOME, join(scratch, 'dsh'))
+    assert.equal(env.DSH_AGENTS_HOME, join(scratch, 'agents'))
   }
-  assert.equal(isolatedEnvironment({ scratch: '/tmp/task', source, live: true, auth: 'api-key' }).DEEPSEEK_API_KEY, 'synthetic-key')
+  assert.equal(isolatedEnvironment({ scratch, source, live: true, auth: 'api-key' }).DEEPSEEK_API_KEY, 'synthetic-key')
 })
 
 test('explicit workspace must be an existing plain canonical project, never a broad root or symlink', async t => {
@@ -54,7 +55,7 @@ test('explicit workspace must be an existing plain canonical project, never a br
   assert.equal(canonicalWorkspace(project), project)
   for (const path of ['relative', '/', homedir(), join(homedir(), 'Documents'), '/Users', '/Volumes', '/private/var', join(root, 'missing')]) assert.throws(() => canonicalWorkspace(path))
   const alias = join(root, 'alias')
-  await symlink(project, alias)
+  await symlink(project, alias, process.platform === 'win32' ? 'junction' : 'dir')
   assert.throws(() => canonicalWorkspace(alias), /symlink/)
   await mkdir(join(project, 'nested'))
   assert.throws(() => canonicalWorkspace(join(alias, 'nested')), /symlink/)
@@ -63,7 +64,7 @@ test('explicit workspace must be an existing plain canonical project, never a br
   assert.throws(() => canonicalWorkspace(file), /plain director/)
 })
 
-test('policy allows only the explicit workspace and scratch to be written, with credentials and runtime protected', async t => {
+test('policy allows only the explicit workspace and scratch to be written, with credentials and runtime protected', { skip: process.platform === 'win32' ? 'Seatbelt policy paths are POSIX; Windows uses WSL2 configuration tests' : false }, async t => {
   const root = await temporary(t)
   const workspace = join(root, 'authorized-project')
   await mkdir(workspace)
@@ -87,7 +88,7 @@ test('policy allows only the explicit workspace and scratch to be written, with 
   assert.throws(() => buildPolicy({ ...options, installation: workspace }), /Runtime/)
 })
 
-test('fixture uses the authorized project without modifying its files and composes an isolated native account runtime', async t => {
+test('fixture uses the authorized project without modifying its files and composes an isolated native account runtime', { skip: process.platform === 'win32' ? 'Native fixtures run inside Linux/WSL2; Windows host does not create POSIX sandboxes' : false }, async t => {
   const root = await temporary(t)
   const installation = await fakeInstall(root)
   const workspace = join(root, 'authorized-project')
@@ -116,7 +117,7 @@ test('fixture uses the authorized project without modifying its files and compos
   assert.match(await readFile(join(fixture.scratch, 'contract-no-tools.mjs'), 'utf8'), /if \(!false\) throw/)
 })
 
-test('workspace-free fixture remains synthetic, while live API-key credentials are still not read by the supervisor', async t => {
+test('workspace-free fixture remains synthetic, while live API-key credentials are still not read by the supervisor', { skip: process.platform === 'win32' ? 'Native fixtures run inside Linux/WSL2; Windows host does not create POSIX sandboxes' : false }, async t => {
   const root = await temporary(t)
   const installation = await fakeInstall(root)
   const code = await createFixture({ installation, live: true, auth: 'api-key', credentialFile: join(root, 'nonexistent-key'), maxRequests: 3 })
@@ -153,6 +154,16 @@ test('project guard permits exactly the three capabilities and eight native mode
     for (let index = 0; index < 8; index += 1) assert.deepEqual(call({ provider: 'deepseek-account', model: 'deepseek-flash', tools }, () => []), [])
     assert.throws(() => call({ provider: 'deepseek-account', model: 'deepseek-flash', tools }, () => []), /Only 8/)
   } finally { mounted.close() }
+})
+
+test('fixture construction removes scratch when late runtime overlap validation fails', { skip: process.platform === 'win32' ? 'Native fixtures run inside Linux/WSL2; Windows host rejects them before allocation' : false }, async t => {
+  const root = await temporary(t)
+  const installation = await fakeInstall(root)
+  const before = await readdir(installation)
+  // The synthetic project would be nested in the runtime. This reaches policy
+  // validation after profile files exist and must remove the entire new scratch.
+  await assert.rejects(createFixture({ installation, parent: installation, code: false }), /workspaceMustNotContainRuntime/)
+  assert.deepEqual(await readdir(installation), before)
 })
 
 test('request bounds are explicit integers 1..16 and text mode keeps its one-request empty-tool contract', async () => {

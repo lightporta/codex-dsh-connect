@@ -1,5 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -31,7 +31,20 @@ if (files.includes(lockPath)) {
 }
 const validation = JSON.parse(await readFile(join(root, 'docs/validation.json'), 'utf8'))
 if (validation.version !== pkg.version) throw new Error('validation belongs to a different release')
-for (const path of ['bin', 'lib', 'scripts', 'test']) {
+for (const path of ['bin', 'lib', 'scripts', 'test', 'skills', 'assets', 'docs', 'plugin.json', 'mcp.json']) {
   if (!pkg.files?.includes(path)) throw new Error(`package missing required directory: ${path}`)
 }
+const plugin = JSON.parse(await readFile(join(root, 'plugin.json'), 'utf8'))
+const mcp = JSON.parse(await readFile(join(root, 'mcp.json'), 'utf8'))
+if (plugin.version !== pkg.version || plugin.name !== pkg.name) throw new Error('plugin and package identity differ')
+if (plugin.$schema !== 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json'
+  || mcp.$schema !== 'https://agent-plugins.org/schemas/1.0.0/mcp.schema.json') throw new Error('unsupported portable plugin schema')
+const extension = plugin.extensions?.['com.openai']
+for (const ref of [extension?.onboardingSkill, extension?.interface?.logo, extension?.interface?.composerIcon]) {
+  if (typeof ref !== 'string' || !ref.startsWith('./') || ref.split('/').includes('..') || !files.includes(resolve(root, ref))) throw new Error('missing or invalid plugin asset')
+}
+const server = mcp.mcpServers?.codex_dsh_connect
+if (server?.type !== 'stdio' || server.command !== 'node' || server.cwd !== '${PLUGIN_ROOT}'
+  || JSON.stringify(server.args) !== JSON.stringify(['${PLUGIN_ROOT}/bin/codex-dsh-plugin.mjs', 'mcp'])) throw new Error('invalid bundled MCP launch')
+if (!files.includes(join(root, 'skills', 'codex-dsh-connect', 'SKILL.md')) || !files.includes(join(root, 'bin', 'codex-dsh-plugin.mjs'))) throw new Error('plugin entrypoint missing')
 console.log(`check passed: ${files.length} files`)

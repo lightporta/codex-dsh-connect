@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "codex_dsh_connect": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/bin/codex-dsh-plugin.mjs", "mcp"],
+      "cwd": "${PLUGIN_ROOT}"
+    }
+  }
+}

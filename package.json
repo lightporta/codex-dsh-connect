@@ -25,10 +25,15 @@
     "lib",
     "scripts",
     "test",
-    "skill",
+    "skills",
+    "assets",
+    "plugin.json",
+    "mcp.json",
     "docs",
     "README.md",
+    "README.zh-CN.md",
     "CHANGELOG.md",
+    "CHANGELOG.zh-CN.md",
     "LICENSE"
   ],
   "scripts": {

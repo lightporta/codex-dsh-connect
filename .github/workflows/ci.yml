@@ -54,11 +54,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Install Linux isolation primitive
+      - name: Prepare Linux isolation and targeted AppArmor policy
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes bubblewrap
+        run: bash scripts/prepare-linux-ci.sh
       - name: Test real isolation with synthetic files and no account
         run: node scripts/platform-isolation.mjs
   wsl2:

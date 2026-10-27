@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readlink, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { buildPolicy, isolatedEnvironment } from '../lib/isolation.mjs'
@@ -20,6 +20,7 @@ try {
   const launchCwd = join(scratch, 'workspace')
   for (const path of [scratch, workspace, installation, launchCwd, join(scratch, 'tmp')]) await mkdir(path, { recursive: true, mode: 0o700 })
   const node = await realpath(process.execPath)
+  const hostNetworkNamespace = process.platform === 'linux' ? await readlink('/proc/self/ns/net') : undefined
   const credentialFile = join(root, 'synthetic-credential.txt')
   const outside = join(root, 'outside.txt')
   const runtimeFile = join(installation, 'runtime.txt')
@@ -31,9 +32,9 @@ try {
     const script = join(scratch, `probe-${live}.mjs`)
     await writeFile(script, `
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { readFileSync, readdirSync, readlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-const paths = ${JSON.stringify({ scratch, workspace, credentialFile, outside, runtimeFile, root, launchCwd })}
+const paths = ${JSON.stringify({ scratch, workspace, credentialFile, outside, runtimeFile, root, launchCwd, hostNetworkNamespace })}
 assert.equal(process.cwd(), paths.launchCwd)
 assert.equal(readFileSync(paths.workspace + '/input.txt', 'utf8'), 'PROJECT_INPUT')
 assert.equal(readFileSync(paths.runtimeFile, 'utf8'), 'READONLY_RUNTIME')
@@ -46,8 +47,9 @@ assert.throws(() => writeFileSync(paths.runtimeFile, 'CHANGED'))
 assert.throws(() => writeFileSync(paths.credentialFile, 'CHANGED'))
 ${live ? "assert.equal(readFileSync(paths.credentialFile, 'utf8'), 'SYNTHETIC_CREDENTIAL')" : 'assert.throws(() => readFileSync(paths.credentialFile))'}
 ${process.platform === 'linux' ? "assert.equal(process.env.HOME, paths.scratch)\nassert.equal(homedir(), paths.scratch)" : "assert.equal(process.env.HOME, undefined)"}
+${process.platform === 'linux' ? `assert.${live ? 'equal' : 'notEqual'}(readlinkSync('/proc/self/ns/net'), paths.hostNetworkNamespace)\nassert.match(readFileSync('/proc/self/status', 'utf8'), /^CapEff:\\s+0+$/m)` : ''}
 for (const name of ['CODEX_HOME', 'NODE_OPTIONS', 'HTTPS_PROXY', 'PARENT_SYNTHETIC']) assert.equal(process.env[name], undefined)
-console.log(JSON.stringify({ passed: true, liveCredentialPolicy: ${live}, checks: 14 }))
+console.log(JSON.stringify({ passed: true, liveCredentialPolicy: ${live} }))
 `)
     const env = isolatedEnvironment({ scratch, source: {}, live, auth: 'account' })
     let launch

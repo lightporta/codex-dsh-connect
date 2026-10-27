@@ -1,6 +1,6 @@
 {
   "project": "codex-dsh-connect",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "validatedOn": "2026-10-27",
   "platform": "macOS",
   "node": "24.16.0",
@@ -40,11 +40,43 @@
     "credentialAccess": false
   },
   "nativeSmoke": {
-    "status": "not-run-for-0.2.0",
-    "reason": "No live model request in this engineering and simulation validation."
+    "ok": true,
+    "mode": "standalone-stdio-native",
+    "nativeVersion": "0.2.1-rc.2",
+    "provider": "deepseek-account",
+    "model": "deepseek-flash",
+    "runId": "run-040205f892be9dea30d8f8ca",
+    "status": "completed",
+    "finalAnswer": "已读取并修复 math.mjs，将 `add(a,b)` 改为返回 `a+b`，并保留了 `export`。",
+    "codeVerified": true,
+    "compactChars": 746,
+    "toolCalls": 2,
+    "usage": {
+      "source": "native-dsh-reported",
+      "completeness": "complete",
+      "tokens": {
+        "inputTokens": 586,
+        "outputTokens": 140,
+        "cacheReadTokens": 1664,
+        "cacheWriteTokens": 0,
+        "totalTokens": 2390
+      },
+      "fieldCompleteness": {
+        "inputTokens": "complete",
+        "outputTokens": "complete",
+        "cacheReadTokens": "complete",
+        "cacheWriteTokens": "complete",
+        "totalTokens": "complete",
+        "reasoningTokens": "unknown"
+      }
+    },
+    "platform": "darwin",
+    "releaseVersion": "0.2.1",
+    "command": "node scripts/smoke.mjs --live",
+    "syntheticProjectOnly": true
   },
   "ci": {
-    "status": "pending-user-push",
+    "status": "pending-user-push-after-ubuntu-policy-fix",
     "workflow": ".github/workflows/ci.yml",
     "offlineMatrix": {
       "os": [
@@ -61,7 +93,67 @@
       "macos-latest",
       "ubuntu-24.04"
     ],
-    "wsl2": "Manual opt-in on an existing self-hosted Windows X64 runner labeled wsl2; not verified by hosted Windows unit tests."
+    "wsl2": "Manual opt-in on an existing self-hosted Windows X64 runner labeled wsl2; not verified by hosted Windows unit tests.",
+    "previousRun": {
+      "commit": "53188e3ea2fd0b4c454376a4fe3dd2c29e2024af",
+      "runId": 40445112637,
+      "url": "https://github.com/lightporta/codex-dsh-connect/actions/runs/40445112637",
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "id": 121994414933,
+          "name": "Real synthetic OS isolation (ubuntu-24.04)",
+          "conclusion": "failure"
+        },
+        {
+          "id": 121994415128,
+          "name": "Offline tests (windows-latest, Node 24)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994415143,
+          "name": "Offline tests (windows-latest, Node 22)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994415235,
+          "name": "Offline tests (macos-latest, Node 22)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994415278,
+          "name": "Offline tests (ubuntu-24.04, Node 22)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994415285,
+          "name": "Real synthetic OS isolation (macos-latest)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994415430,
+          "name": "Offline tests (macos-latest, Node 24)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994416187,
+          "name": "Offline tests (ubuntu-24.04, Node 24)",
+          "conclusion": "success"
+        },
+        {
+          "id": 121994424045,
+          "name": "Real WSL2 synthetic isolation (manual, self-hosted)",
+          "conclusion": "skipped"
+        }
+      ],
+      "ubuntuError": "bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted"
+    },
+    "linuxPreparation": {
+      "script": "scripts/prepare-linux-ci.sh",
+      "profile": "Distribution-supplied bwrap-userns-restrict",
+      "scope": "GitHub-hosted Linux only; global AppArmor restriction remains enabled; no offline network sharing",
+      "localValidation": "bash syntax and non-hosted guard verified; real Ubuntu rerun pending"
+    }
   },
   "git": {
     "branch": "codex/engineering-cross-platform",
@@ -105,19 +197,36 @@
         "GPT token savings"
       ],
       "distribution": "Source ZIP; user uploads to GitHub."
+    },
+    {
+      "version": "0.2.0",
+      "commit": "53188e3ea2fd0b4c454376a4fe3dd2c29e2024af",
+      "offlineTests": {
+        "passed": 66,
+        "failed": 0,
+        "skipped": 0
+      },
+      "nativeSmoke": {
+        "status": "not-run-for-0.2.0",
+        "reason": "No live model request in this engineering and simulation validation."
+      },
+      "ciRun": "https://github.com/lightporta/codex-dsh-connect/actions/runs/40445112637",
+      "ciConclusion": "failure"
     }
   ],
   "notMeasured": [
     "GPT token savings"
   ],
-  "distribution": "Local Git commit; user pushes to GitHub to run CI.",
+  "distribution": "Local Git repair commit; user pushes, confirms CI and merges.",
   "packageValidation": {
     "npmPack": true,
     "extractedPackageTests": {
       "passed": 66,
-      "failed": 0
+      "failed": 0,
+      "skipped": 0
     },
     "extractedPackageCheck": true,
-    "scope": "Local macOS tarball extraction, runtime source inclusion and test/check execution; not npm publication."
+    "requiredLinuxPreparationIncluded": true,
+    "scope": "Local macOS tarball extraction and test/check execution; not npm publication or a Linux runtime test."
   }
 }

@@ -16,15 +16,15 @@ Harness 自己负责模型认证、消息协议、工具循环和用量记录。
 
 ## 当前版本
 
-`0.2.0` 增加 Linux bubblewrap 后端和 Windows WSL2 配置，要求 Node `^22.19.0 || >=24.0.0`、固定官方 `@deepseek-ai/dsh@0.2.1-rc.2`。需要先通过 Harness 自己完成 **DeepSeek 账号登录**；使用原生 `deepseek-account / deepseek-flash`，不要求另配 API Key。其他 Harness 版本会拒绝执行。
+`0.2.1` 包含 Linux bubblewrap 后端和 Windows WSL2 配置，补充 Ubuntu CI 的 AppArmor 定向策略准备。要求 Node `^22.19.0 || >=24.0.0`、固定官方 `@deepseek-ai/dsh@0.2.1-rc.2`。需要先通过 Harness 自己完成 **DeepSeek 账号登录**；使用原生 `deepseek-account / deepseek-flash`，不要求另配 API Key。其他 Harness 版本会拒绝执行。
 
 | 环境 | 执行方式 | 当前验证范围 |
 | --- | --- | --- |
-| macOS | Seatbelt | 本机单元测试、合成文件真实隔离；0.1.0 的真实 Harness 修改记录保留为历史证据 |
+| macOS | Seatbelt | 本机单元测试、真实隔离、0.2.1 的实际 Harness 读取/修改及终局返回通过 |
 | Linux | `/usr/bin/bwrap` | 启动策略及元数据模拟通过；真实系统隔离与 Harness 运行待验证 |
 | Windows | 选定 WSL2 内的 Linux 后端 | 参数、路径与配置模拟通过；真实 Windows/WSL2 运行待验证 |
 
-Windows 原生 Node 仅用于配置生成和协议测试；执行任务须进入 WSL2。CI 未运行前，不把模拟结果视作跨平台运行成功。详细状态见 [验证记录](docs/validation.json)。
+Windows 原生 Node 仅用于配置生成和协议测试；执行任务须进入 WSL2。0.2.0 的六组三系统离线 CI 与 macOS 隔离已通过；Ubuntu 隔离遇到 AppArmor 命名空间权限问题，0.2.1 修复配置待重新推送验证。WSL2 仍待真实运行。详细状态见 [验证记录](docs/validation.json)。
 
 每次任务创建全新的临时 profile 和会话。只允许三个项目文件工具，不提供 shell、执行代码、安装依赖、联网工具或历史会话续接。运行结果只保存在当前 MCP 进程内，结束后移除临时会话；不是常驻 Web 服务。
 
@@ -64,7 +64,7 @@ node bin/codex-dsh-connect.mjs config \
 
 ### Linux 与 Windows WSL2
 
-Linux 需先安装发行版的 bubblewrap，例如 Ubuntu 的 `sudo apt-get install bubblewrap`，并允许非特权用户命名空间。未安装或系统策略不允许时会失败，不会降级为无隔离运行。Node、Harness 安装目录须使用实际的规范路径；只有授权项目与临时目录可写。
+Linux 需先安装发行版的 bubblewrap，例如 Ubuntu 的 `sudo apt-get install bubblewrap`，并允许非特权用户命名空间。Ubuntu 24.04 的 AppArmor 可能还需要管理员加载发行版的 bwrap 专用策略，见 [跨平台验证](docs/platform-validation.md)。未安装或系统策略不允许时会失败，不会降级为无隔离运行。Node、Harness 安装目录须使用实际的规范路径；只有授权项目与临时目录可写。
 
 Windows 先在选定的 WSL2 发行版中安装 Linux Node、bubblewrap、本项目和 Harness，并在该发行版内完成原生登录。可直接在 WSL2 运行前述命令，或在 Windows 生成启动片段：
 
@@ -122,7 +122,7 @@ node scripts/smoke.mjs --check # 无模型请求、无原凭据访问
 node scripts/smoke.mjs --live  # 显式真实模型测试，仅使用合成临时项目
 ```
 
-本次在 macOS / Node 24.16.0 通过 66 项测试、真实合成文件隔离与原生无模型检查。0.1.0 曾完成独立 stdio MCP → Harness 的真实代码修改；该历史结果不替代 0.2.0 的实时模型回归。此次不调用模型。
+0.2.1 在 macOS / Node 24.16.0 通过 66 项测试，并重新完成实际 stdio MCP → Harness 委派：子代理读取并修复合成项目的 `math.mjs`，完成两次文件工具调用，返回非空终局答案，修改后的加法函数通过独立离线沙箱验收。该结果只验证本机组合，不替代 Linux/WSL2 实操。
 
 推送后 GitHub Actions 自动运行 macOS、Ubuntu、Windows × Node 22/24 的离线测试、包检查，以及 macOS/Linux 的真实合成隔离。Windows hosted runner 的测试不代表 WSL2 已运行；真实 WSL2 需手动启用自托管任务。设置和验收步骤见 [跨平台验证](docs/platform-validation.md)。
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-10-27
+
+- 针对实际 Ubuntu CI 的 `loopback: Failed RTM_NEWADDR` 失败，增加 GitHub 托管 Linux runner 专用准备步骤，按需加载发行版提供的 AppArmor `bwrap-userns-restrict` 策略；保留全局限制、离线网络命名空间与 capabilities 清除。
+- 合成隔离探测增加网络命名空间与零有效 capabilities 断言，防止通过放开网络绕过失败。
+- 真实 smoke 要求完成任务、非空终局答案与至少两次工具调用，报告实际结果和安全的失败阶段。
+- macOS 66 项离线测试通过；重新实操委派 DSH，成功读取、修改合成代码、返回终局结果，并通过独立沙箱验收。
+- 记录 0.2.0 的实际 CI：六组离线测试及 macOS 隔离通过、Ubuntu 隔离失败、手动 WSL2 跳过。0.2.1 的 Ubuntu 修复仍待推送后确认。
+
 ## 0.2.0 — 2026-10-27
 
 - 新增 Linux bubblewrap 启动后端：只读运行时、明确可写项目与临时目录、环境白名单和凭据文件元数据检查。

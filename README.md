@@ -2,6 +2,9 @@
 
 English | [简体中文](README.zh-CN.md)
 
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/lightporta/codex-dsh-connect)
+[![Listed on Glama](https://img.shields.io/badge/Listed%20on-Glama-6B5BFF)](https://glama.ai/mcp/servers/lightporta/codex-dsh-connect)
+
 Delegate explicitly authorized coding tasks from Codex to the **native DeepSeek Harness**. This standalone Node.js project launches Harness directly through stdio MCP, with no third-party runtime dependencies.
 
 ```text

@@ -2,6 +2,9 @@
 
 [English](README.md) | 简体中文
 
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/lightporta/codex-dsh-connect)
+[![Listed on Glama](https://img.shields.io/badge/Listed%20on-Glama-6B5BFF)](https://glama.ai/mcp/servers/lightporta/codex-dsh-connect)
+
 让 Codex 将明确授权的代码任务交给 **DeepSeek 原生 Harness**。这是一个独立 Node.js 项目，通过 stdio MCP 直接启动原生 Harness，无第三方运行时依赖。
 
 ```text
